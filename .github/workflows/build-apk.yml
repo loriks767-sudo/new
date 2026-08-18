@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Mines APK
 
 on:
   workflow_dispatch:
@@ -7,20 +7,23 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build APK
-        uses: ArtemGr/buildozer-action@v1
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
           command: buildozer android debug
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Mines-APK
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
