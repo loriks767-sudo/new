@@ -49,6 +49,7 @@ jobs:
           pip install buildozer
 
       - name: Build APK
+        working-directory: mines_android_ready
         run: |
           buildozer android debug
 
@@ -56,4 +57,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Mines-APK
-          path: bin/*.apk
+          path: mines_android_ready/bin/*.apk
