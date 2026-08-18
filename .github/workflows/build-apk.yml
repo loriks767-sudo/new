@@ -2,9 +2,6 @@ name: Build Mines APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
@@ -25,13 +22,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y \
             git \
             zip \
             unzip \
+            wget \
             autoconf \
             automake \
             libtool \
@@ -48,30 +46,78 @@ jobs:
           python -m pip install --upgrade pip
           pip install buildozer cython
 
-      - name: Show project
+      - name: Find project
         run: |
-          echo "Project files:"
-          find . -maxdepth 3 -type f | sort
+          PROJECT_DIR=$(dirname "$(find . -name "buildozer.spec" -print -quit)")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Found project: $PROJECT_DIR"
+
+      - name: Install Android SDK
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK/cmdline-tools"
+
+          cd /tmp
+
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+
+          unzip -q commandlinetools-linux-11076708_latest.zip
+
+          mkdir -p "$SDK/cmdline-tools/latest"
+
+          cp -r cmdline-tools/* "$SDK/cmdline-tools/latest/"
+
+          export ANDROID_HOME="$SDK"
+          export ANDROID_SDK_ROOT="$SDK"
+          export PATH="$SDK/cmdline-tools/latest/bin:$SDK/platform-tools:$PATH"
+
+          yes | sdkmanager --licenses || true
+
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+          echo "Android SDK installed:"
+          ls -la "$SDK/build-tools/35.0.0"
+
+      - name: Set Android environment
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          echo "$SDK/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$SDK/platform-tools" >> $GITHUB_PATH
+          echo "$SDK/build-tools/35.0.0" >> $GITHUB_PATH
+
+      - name: Check AIDL
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          echo "Checking:"
+          echo "$SDK/build-tools/35.0.0/aidl"
+
+          test -f "$SDK/build-tools/35.0.0/aidl"
+
+          ls -lh "$SDK/build-tools/35.0.0/aidl"
 
       - name: Build APK
         run: |
-          PROJECT_DIR=$(dirname "$(find . -name "buildozer.spec" -print -quit)")
-
-          echo "Project directory: $PROJECT_DIR"
-
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: buildozer.spec not found"
-            exit 1
-          fi
-
           cd "$PROJECT_DIR"
 
-          echo "Running Buildozer..."
+          echo "Building from:"
+          pwd
+
+          echo "Files:"
+          ls -la
+
           buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
         if: success()
+        uses: actions/upload-artifact@v4
         with:
           name: Mines-APK
           path: "**/bin/*.apk"
