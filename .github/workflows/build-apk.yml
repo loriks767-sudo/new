@@ -82,7 +82,6 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           find "$ANDROID_HOME/build-tools" -name aidl -type f
-          aidl --version
 
       - name: Build APK
         run: |
