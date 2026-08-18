@@ -85,6 +85,11 @@ jobs:
 
       - name: Build APK
         run: |
+          PROJECT_DIR=$(dirname "$(find . -name "buildozer.spec" -print -quit)")
+          echo "Project directory: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          pwd
+          ls -la
           buildozer android debug
 
       - name: Upload APK
